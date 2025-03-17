@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const CONNECTION_STRING = 'mongodb://mongo:DVGEOtMaXukGAMZTKAbAiBZixpVRCBoh@yamabiko.proxy.rlwy.net:31684';
+const CONNECTION_STRING = 'mongodb://mongo:rMPgWrtxJAOtYeuHdjppanirbPBCTNxn@interchange.proxy.rlwy.net:47230';
 
 module.exports = async function(app) {
     try{
