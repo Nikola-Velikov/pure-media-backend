@@ -5,6 +5,8 @@ const newsController = require('express').Router();
 const fs = require('fs');
 const path = require('path');
 
+
+
 // Read the yellow words and phrases from the file
 const getYellowWordsFromFile = () => {
     const filePath = path.join(__dirname, '..', 'words.txt');
@@ -21,8 +23,9 @@ const getYellowWordsFromFile = () => {
 
 const yellowWords = getYellowWordsFromFile();
 
+let matches = {};  // Declare it globally but reset it for each request
 
-const highlightYellowMediaWords = (text, phrases) => {
+const highlightYellowMediaWords = (text, phrases, media) => {
     const highlightEnabled = false; 
 
     return phrases.reduce((score, phrase) => {
@@ -36,46 +39,82 @@ const highlightYellowMediaWords = (text, phrases) => {
 
         // If a match is found, increment the score
         if (regex.test(text)) {
-            score += 1; // Increment score if yellow word is found
+            score += 1;
+            // Check if the phrase already exists in the matches object
+          
+            if (matches[phrase]) {
+                // If the phrase exists, increase the repeat count
+                matches[phrase].repeat += 1;
+            
+            } else {
+                if(phrase){
+
+                    matches[phrase] = {
+                        repeat: 1,
+                        media: media
+                    };
+                }
+                // Otherwise, initialize it with 1 repeat
+            
+            }
+            // Increment score if yellow word is found
         }
 
         return score; // Return the score for this text
     }, 0); // Start score at 0
-    
 };
 
+function mostRepeatedWordByMedia(data) {
+    const mediaRepeatMap = {};
+
+    // Iterate over the words in the data
+    for (const [word, values] of Object.entries(data)) {
+        const { media, repeat } = values;
+
+        // If the media is not in the map or the repeat is higher than the previous one, update the map
+        if (!mediaRepeatMap[media] || repeat > mediaRepeatMap[media].repeat) {
+            mediaRepeatMap[media] = { word, repeat };
+        }
+    }
+
+    // Return the result in the required format
+    return mediaRepeatMap;
+}
+
 newsController.get('/score', async (req, res) => {
+    // Reset the matches object to avoid data contamination between requests
+    matches = {};  
+
     try {
         const allNews = await News.find({});
 
         let mediaStats = {};
+        console.log(allNews.length);
 
         allNews.forEach(news => {
-            if(news.media!="BTA"){
-            if (!mediaStats[news.media]) {
-                mediaStats[news.media] = {
-                    yellowNewsCount: 0,
-                    totalNewsCount: 0,
-                };
-            }
+            if(news.media !== "BTA") {
+                // Initialize stats for new media
+                if (!mediaStats[news.media]) {
+                    mediaStats[news.media] = {
+                        yellowNewsCount: 0,
+                        totalNewsCount: 0,
+                    };
+                }
 
-            // Increment the total news count for this media outlet
-            mediaStats[news.media].totalNewsCount++;
+                // Increment the total news count for this media outlet
+                mediaStats[news.media].totalNewsCount++;
 
-            const titleScore = highlightYellowMediaWords(news.title, yellowWords);
-          
-            const descriptionScore = highlightYellowMediaWords(news.description, yellowWords);
+                // Highlight yellow words in the title and description
+                const titleScore = highlightYellowMediaWords(news.title, yellowWords, news.media);
+                const descriptionScore = highlightYellowMediaWords(news.description, yellowWords, news.media);
 
-            // If either title or description contains yellow words, increment yellow news count
-            if (titleScore > 1 || descriptionScore > 1) {
-                mediaStats[news.media].yellowNewsCount++;
-                if(news.media=="pik"){
-                    console.log(news.title);
-                    
+                // If either title or description contains yellow words, increment yellow news count
+                if (titleScore > 1 || descriptionScore > 1) {
+                    mediaStats[news.media].yellowNewsCount++;
                 }
             }
-        }
         });
+        const repeatedWords = mostRepeatedWordByMedia(matches);
 
         // Prepare response format with yellow news count and total news count
         const response = Object.keys(mediaStats).map(media => {
@@ -84,9 +123,12 @@ newsController.get('/score', async (req, res) => {
                 stats: [
                     mediaStats[media].yellowNewsCount, // yellow news count
                     mediaStats[media].totalNewsCount   // total news count
-                ]
+                ],
+                repeatedWords
             };
         });
+
+        // Now, get the most repeated words by media
 
         // Return the stats for each media
         res.status(200).send({
@@ -102,6 +144,7 @@ newsController.get('/score', async (req, res) => {
         });
     }
 });
+
 newsController.get('/', async (req, res) => {
     try {
         const limit = req.query.limit || 10; // Default limit to 10 if not provided
