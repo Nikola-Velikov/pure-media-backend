@@ -235,6 +235,87 @@ newsController.get('/', async (req, res) => {
 //         })
 //     }
 // })
+// newsController.get('/:id', async (req, res) => {
+//     try {
+//         const newsId = req.params.id;
+
+//         // Fetch the news item by ID
+//         const newsItem = await News.findById(newsId).select('title description media createdAt image_url');
+
+//         if (!newsItem) {
+//             return res.status(404).send({
+//                 success: false,
+//                 message: 'News item not found',
+//             });
+//         }
+
+//         // Fetch matches where btaNewId matches the news ID
+//         const matches = await Matches.find({ btaNewId: newsId })
+//             .populate('matchNewId', 'title description media createdAt _id image_url'); // Populate matched news details, including media
+//             const text = newsItem.title + " " + newsItem.description
+
+//             if (!text) {
+//                 return res.status(400).json({ error: "Missing 'text' parameter" });
+//             }
+        
+//             // Spawn Python process
+//             const pythonProcess = spawn("python3", ["model.py"]);
+        
+//             // Send text as input to Python script
+//             pythonProcess.stdin.write(JSON.stringify({ text }));
+//             pythonProcess.stdin.end();
+        
+//             let responseData = "";
+        
+//             // Read Python output
+//             pythonProcess.stdout.on("data", (data) => {
+//                 responseData += data.toString();
+//             });
+        
+//             // Handle process exit
+//             pythonProcess.on("close", () => {
+//                 try {
+//                     const modelPrediction = JSON.parse(responseData);
+//                     const result = {
+//                         modelPrediction,
+//                         title: newsItem.title,
+//                         description: newsItem.description,
+//                         media: newsItem.media,
+//                         createdAt: newsItem.createdAt,
+//                         image_url: newsItem.image_url || null,
+//                         matches: matches.map(match => ({
+//                             title: match.matchNewId?.title || null,
+//                             description: match.matchNewId?.description || null,
+//                             media: match.matchNewId?.media || null, 
+//                             createdAt: match.matchNewId?.createdAt || null,
+//                             _id: match.matchNewId?._id || null,
+//                             image_url: match.matchNewId?.image_url || null
+//                         })),
+//                     };
+            
+//                     res.status(200).send({
+//                         success: true,
+//                         result,
+//                     });
+//                 } catch (error) {
+//                     console.error("Error parsing Python response:", error);
+//                     res.status(500).json({ error: "Internal server error" });
+//                 }
+//             });
+        
+//             // Handle Python errors
+//             pythonProcess.stderr.on("data", (data) => {
+//                 console.error("Python error:", data.toString());
+//             });
+//         // Format the result
+        
+//     } catch (err) {
+//         res.status(400).send({
+//             success: false,
+//             error: err.message,
+//         });
+//     }
+// });
 newsController.get('/:id', async (req, res) => {
     try {
         const newsId = req.params.id;
@@ -252,63 +333,28 @@ newsController.get('/:id', async (req, res) => {
         // Fetch matches where btaNewId matches the news ID
         const matches = await Matches.find({ btaNewId: newsId })
             .populate('matchNewId', 'title description media createdAt _id image_url'); // Populate matched news details, including media
-            const text = newsItem.title + " " + newsItem.description
 
-            if (!text) {
-                return res.status(400).json({ error: "Missing 'text' parameter" });
-            }
-        
-            // Spawn Python process
-            const pythonProcess = spawn("python3", ["model.py"]);
-        
-            // Send text as input to Python script
-            pythonProcess.stdin.write(JSON.stringify({ text }));
-            pythonProcess.stdin.end();
-        
-            let responseData = "";
-        
-            // Read Python output
-            pythonProcess.stdout.on("data", (data) => {
-                responseData += data.toString();
-            });
-        
-            // Handle process exit
-            pythonProcess.on("close", () => {
-                try {
-                    const modelPrediction = JSON.parse(responseData);
-                    const result = {
-                        modelPrediction,
-                        title: newsItem.title,
-                        description: newsItem.description,
-                        media: newsItem.media,
-                        createdAt: newsItem.createdAt,
-                        image_url: newsItem.image_url || null,
-                        matches: matches.map(match => ({
-                            title: match.matchNewId?.title || null,
-                            description: match.matchNewId?.description || null,
-                            media: match.matchNewId?.media || null, 
-                            createdAt: match.matchNewId?.createdAt || null,
-                            _id: match.matchNewId?._id || null,
-                            image_url: match.matchNewId?.image_url || null
-                        })),
-                    };
-            
-                    res.status(200).send({
-                        success: true,
-                        result,
-                    });
-                } catch (error) {
-                    console.error("Error parsing Python response:", error);
-                    res.status(500).json({ error: "Internal server error" });
-                }
-            });
-        
-            // Handle Python errors
-            pythonProcess.stderr.on("data", (data) => {
-                console.error("Python error:", data.toString());
-            });
         // Format the result
-        
+        const result = {
+            title: newsItem.title,
+            description: newsItem.description,
+            media: newsItem.media,
+            createdAt: newsItem.createdAt,
+            image_url: newsItem.image_url || null,
+            matches: matches.map(match => ({
+                title: match.matchNewId?.title || null,
+                description: match.matchNewId?.description || null,
+                media: match.matchNewId?.media || null, 
+                createdAt: match.matchNewId?.createdAt || null,
+                _id: match.matchNewId?._id || null,
+                image_url: match.matchNewId?.image_url || null
+            })),
+        };
+
+        res.status(200).send({
+            success: true,
+            result,
+        });
     } catch (err) {
         res.status(400).send({
             success: false,
@@ -316,6 +362,5 @@ newsController.get('/:id', async (req, res) => {
         });
     }
 });
-
 
 module.exports = newsController;
