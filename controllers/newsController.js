@@ -259,7 +259,7 @@ newsController.get('/:id', async (req, res) => {
             }
         
             // Spawn Python process
-            const pythonProcess = spawn("python", ["model.py"]);
+            const pythonProcess = spawn("python3", ["model.py"]);
         
             // Send text as input to Python script
             pythonProcess.stdin.write(JSON.stringify({ text }));
