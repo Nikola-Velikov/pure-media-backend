@@ -6,8 +6,14 @@
             "use": "@vercel/node"
         },
         {
-            "src": "model.py",
+            "src": "*.py",
             "use": "@vercel/python"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "/"
         }
     ]
 }
