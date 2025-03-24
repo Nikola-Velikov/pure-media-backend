@@ -4,7 +4,7 @@ const { getAll, create, getById } = require("../services/blogService");
 const newsController = require('express').Router();
 const fs = require('fs');
 const path = require('path');
-
+const { spawn } = require("child_process");
 
 
 // Read the yellow words and phrases from the file
@@ -127,7 +127,6 @@ newsController.get('/score', async (req, res) => {
                 repeatedWords
             };
         });
-
         // Now, get the most repeated words by media
 
         // Return the stats for each media
@@ -253,28 +252,63 @@ newsController.get('/:id', async (req, res) => {
         // Fetch matches where btaNewId matches the news ID
         const matches = await Matches.find({ btaNewId: newsId })
             .populate('matchNewId', 'title description media createdAt _id image_url'); // Populate matched news details, including media
+            const text = newsItem.title + " " + newsItem.description
 
+            if (!text) {
+                return res.status(400).json({ error: "Missing 'text' parameter" });
+            }
+        
+            // Spawn Python process
+            const pythonProcess = spawn("python", ["model.py"]);
+        
+            // Send text as input to Python script
+            pythonProcess.stdin.write(JSON.stringify({ text }));
+            pythonProcess.stdin.end();
+        
+            let responseData = "";
+        
+            // Read Python output
+            pythonProcess.stdout.on("data", (data) => {
+                responseData += data.toString();
+            });
+        
+            // Handle process exit
+            pythonProcess.on("close", () => {
+                try {
+                    const modelPrediction = JSON.parse(responseData);
+                    const result = {
+                        modelPrediction,
+                        title: newsItem.title,
+                        description: newsItem.description,
+                        media: newsItem.media,
+                        createdAt: newsItem.createdAt,
+                        image_url: newsItem.image_url || null,
+                        matches: matches.map(match => ({
+                            title: match.matchNewId?.title || null,
+                            description: match.matchNewId?.description || null,
+                            media: match.matchNewId?.media || null, 
+                            createdAt: match.matchNewId?.createdAt || null,
+                            _id: match.matchNewId?._id || null,
+                            image_url: match.matchNewId?.image_url || null
+                        })),
+                    };
+            
+                    res.status(200).send({
+                        success: true,
+                        result,
+                    });
+                } catch (error) {
+                    console.error("Error parsing Python response:", error);
+                    res.status(500).json({ error: "Internal server error" });
+                }
+            });
+        
+            // Handle Python errors
+            pythonProcess.stderr.on("data", (data) => {
+                console.error("Python error:", data.toString());
+            });
         // Format the result
-        const result = {
-            title: newsItem.title,
-            description: newsItem.description,
-            media: newsItem.media,
-            createdAt: newsItem.createdAt,
-            image_url: newsItem.image_url || null,
-            matches: matches.map(match => ({
-                title: match.matchNewId?.title || null,
-                description: match.matchNewId?.description || null,
-                media: match.matchNewId?.media || null, 
-                createdAt: match.matchNewId?.createdAt || null,
-                _id: match.matchNewId?._id || null,
-                image_url: match.matchNewId?.image_url || null
-            })),
-        };
-
-        res.status(200).send({
-            success: true,
-            result,
-        });
+        
     } catch (err) {
         res.status(400).send({
             success: false,
