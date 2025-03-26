@@ -366,49 +366,5 @@ newsController.get('/:id', async (req, res) => {
     }
 });
 
-newsController.get('/classify/:id', async (req, res) => {
-    try {
-        const newsId = req.params.id;
-
-        // Fetch the news item by ID
-        const newsItem = await News.findById(newsId).select('title description media createdAt image_url');
-
-        if (!newsItem) {
-            return res.status(404).send({
-                success: false,
-                message: 'News item not found',
-            });
-        }
-
-        // Prepare the full text (concatenate title and description)
-        const fullText = `${newsItem.title} ${newsItem.description}`;
-
-        const response = await fetch('https://puremediaai-production.up.railway.app/classify?text=' + encodeURIComponent(fullText));
-
-        if (!response.ok) {
-            throw new Error('Failed to classify the text');
-        }
-
-        // Parse the response JSON
-        const classificationResult = await response.json();
-
-        // Format the result
-        const result = {
-            prediction: classificationResult.prediction,
-            confidence: classificationResult.confidence,
-        };
-
-        // Return the result with classification data
-        return res.status(200).send({
-            success: true,
-            result,
-        });
-    } catch (err) {
-        res.status(400).send({
-            success: false,
-            error: err.message,
-        });
-    }
-});
 
 module.exports = newsController;

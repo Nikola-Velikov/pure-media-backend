@@ -12,11 +12,6 @@
         "dest": "/"
       }
       
-    ],
-    "functions": {
-        "api/classify.js": {
-            "maxDuration": 60
-        }
-    }
+    ]
   }
   
