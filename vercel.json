@@ -3,10 +3,7 @@
     "builds": [
       {
         "src": "*.js",
-        "use": "@vercel/node",
-        "config": {
-          "maxDuration": 30  
-        }
+        "use": "@vercel/node"
       }
     ],
     "routes": [
@@ -14,6 +11,12 @@
         "src": "/(.*)",
         "dest": "/"
       }
-    ]
+      
+    ],
+    "functions": {
+        "api/classify.js": {
+            "maxDuration": 60
+        }
+    }
   }
   
