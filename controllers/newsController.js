@@ -259,7 +259,7 @@ newsController.get('/', async (req, res) => {
 //             }
         
 //             // Spawn Python process
-//             const pythonProcess = spawn("python3", ["model.py"]);
+//             const pythonProcess = spawn("python", ["model.py"]);
         
 //             // Send text as input to Python script
 //             pythonProcess.stdin.write(JSON.stringify({ text }));
@@ -333,7 +333,17 @@ newsController.get('/:id', async (req, res) => {
         // Fetch matches where btaNewId matches the news ID
         const matches = await Matches.find({ btaNewId: newsId })
             .populate('matchNewId', 'title description media createdAt _id image_url'); // Populate matched news details, including media
+            const fullText = `${newsItem.title} ${newsItem.description}`;
 
+            // Make a GET request to the FastAPI service for classification using fetch
+            const response = await fetch('https://puremediaai-production.up.railway.app/classify?text=' + encodeURIComponent(fullText));
+            
+            if (!response.ok) {
+                throw new Error('Failed to classify the text');
+            }
+    
+            // Parse the response JSON
+            const classificationResult = await response.json();
         // Format the result
         const result = {
             title: newsItem.title,
@@ -341,6 +351,8 @@ newsController.get('/:id', async (req, res) => {
             media: newsItem.media,
             createdAt: newsItem.createdAt,
             image_url: newsItem.image_url || null,
+            prediction: classificationResult.prediction,
+            confidence: classificationResult.confidence,
             matches: matches.map(match => ({
                 title: match.matchNewId?.title || null,
                 description: match.matchNewId?.description || null,

@@ -36,7 +36,7 @@ async function start() {
     routesConfig(app);
    // await uploadData()
    // app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-   app.listen(3000, () => { console.log('App listening on port 3000') });
+   app.listen(4000, () => { console.log('App listening on port 3000') });
 
     //await Matches.deleteMany({});
    //  await uploadData()
